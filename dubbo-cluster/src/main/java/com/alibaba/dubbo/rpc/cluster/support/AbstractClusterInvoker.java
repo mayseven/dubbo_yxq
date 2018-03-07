@@ -102,7 +102,7 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
         if (invokers == null || invokers.size() == 0)
             return null;
         String methodName = invocation == null ? "" : invocation.getMethodName();
-
+        // 判断UR上是否配置了sticky属性，sticky默认为false
         boolean sticky = invokers.get(0).getUrl().getMethodParameter(methodName, Constants.CLUSTER_STICKY_KEY, Constants.DEFAULT_CLUSTER_STICKY);
         {
             //ignore overloaded method
@@ -117,7 +117,7 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
             }
         }
         Invoker<T> invoker = doselect(loadbalance, invocation, invokers, selected);
-
+        // 如果配置了sticky="true"，那么将这次选择到的Invoker缓存下来赋值给stickyInvoker
         if (sticky) {
             stickyInvoker = invoker;
         }
@@ -125,16 +125,21 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
     }
 
     private Invoker<T> doselect(LoadBalance loadbalance, Invocation invocation, List<Invoker<T>> invokers, List<Invoker<T>> selected) throws RpcException {
+        // 如果没有任何可调用服务, 那么返回null
         if (invokers == null || invokers.size() == 0)
             return null;
+        // 如果只有1个Invoker(provider)，那么直接返回，不需要任何负载均衡算法
         if (invokers.size() == 1)
             return invokers.get(0);
         // If we only have two invokers, use round-robin instead.
+        // 如果只有两个invoker，且处于重新选择(重试)过程中(selected != null && selected.size() > 0)，则退化成轮循；
         if (invokers.size() == 2 && selected != null && selected.size() > 0) {
             return selected.get(0) == invokers.get(0) ? invokers.get(1) : invokers.get(0);
         }
-        Invoker<T> invoker = loadbalance.select(invokers, getUrl(), invocation);
+        // invokers数量至少3个的话，调用具体的负载均衡实现(例如轮询，随机等)选择Invoker
 
+        Invoker<T> invoker = loadbalance.select(invokers, getUrl(), invocation);
+        //如果处于重试过程中，且 selected中包含当前选择的invoker（优先判断） 或者 (不可用&&availablecheck=true) 则重试.
         //If the `invoker` is in the  `selected` or invoker is unavailable && availablecheck is true, reselect.
         if ((selected != null && selected.contains(invoker))
                 || (!invoker.isAvailable() && getUrl() != null && availablecheck)) {
@@ -143,9 +148,11 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
                 if (rinvoker != null) {
                     invoker = rinvoker;
                 } else {
+                    //看下第一次选的位置，如果不是最后，选+1位置.
                     //Check the index of current selected invoker, if it's not the last one, choose the one at index+1.
                     int index = invokers.indexOf(invoker);
                     try {
+                        //最后在避免碰撞
                         //Avoid collision
                         invoker = index < invokers.size() - 1 ? invokers.get(index + 1) : invoker;
                     } catch (Exception e) {
@@ -223,9 +230,11 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
 
         List<Invoker<T>> invokers = list(invocation);
         if (invokers != null && invokers.size() > 0) {
+            // 排序后的Invoker集合的第一个Invoker(即invokers.get(0))的负载均衡策略就是dubbo选择的策略，默认策略为Constants.DEFAULT_LOADBALANCE，即"random"，然后根据扩展机制得到负载均衡算法的实现为com.alibaba.dubbo.rpc.cluster.loadbalance.RandomLoadBalance
             loadbalance = ExtensionLoader.getExtensionLoader(LoadBalance.class).getExtension(invokers.get(0).getUrl()
                     .getMethodParameter(invocation.getMethodName(), Constants.LOADBALANCE_KEY, Constants.DEFAULT_LOADBALANCE));
         } else {
+            // 如果没有任何Invoker，那么直接取默认负载
             loadbalance = ExtensionLoader.getExtensionLoader(LoadBalance.class).getExtension(Constants.DEFAULT_LOADBALANCE);
         }
         RpcUtils.attachInvocationIdIfAsync(getUrl(), invocation);
