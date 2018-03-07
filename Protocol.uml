@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>JAVA</ID>
+  <OriginalElement>com.alibaba.dubbo.rpc.Protocol</OriginalElement>
+  <nodes>
+    <node x="202.5" y="132.0">com.alibaba.dubbo.rpc.ProxyFactory</node>
+    <node x="915.375" y="0.0">com.alibaba.dubbo.common.extension.SPI</node>
+    <node x="1106.0" y="132.0">com.alibaba.dubbo.remoting.exchange.Exchanger</node>
+    <node x="615.4431818181818" y="132.0">com.alibaba.dubbo.remoting.Transporter</node>
+    <node x="328.0" y="421.0">com.alibaba.dubbo.rpc.proxy.jdk.JdkProxyFactory</node>
+    <node x="1501.0" y="107.0">com.alibaba.dubbo.rpc.Protocol</node>
+    <node x="202.5" y="289.0">com.alibaba.dubbo.rpc.proxy.AbstractProxyFactory</node>
+    <node x="453.5" y="289.0">com.alibaba.dubbo.remoting.transport.mina.MinaTransporter</node>
+    <node x="0.0" y="421.0">com.alibaba.dubbo.rpc.proxy.javassist.JavassistProxyFactory</node>
+    <node x="774.5" y="289.0">com.alibaba.dubbo.remoting.transport.netty.NettyTransporter</node>
+    <node x="1095.5" y="289.0">com.alibaba.dubbo.remoting.exchange.support.header.HeaderExchanger</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="com.alibaba.dubbo.remoting.exchange.Exchanger" target="com.alibaba.dubbo.common.extension.SPI">
+      <point x="0.0" y="-41.0" />
+      <point x="1293.5" y="87.0" />
+      <point x="1004.125" y="87.0" />
+      <point x="17.75" y="28.5" />
+    </edge>
+    <edge source="com.alibaba.dubbo.rpc.proxy.jdk.JdkProxyFactory" target="com.alibaba.dubbo.rpc.proxy.AbstractProxyFactory">
+      <point x="0.0" y="-41.0" />
+      <point x="482.0" y="396.0" />
+      <point x="375.75" y="396.0" />
+      <point x="57.75" y="41.0" />
+    </edge>
+    <edge source="com.alibaba.dubbo.rpc.Protocol" target="com.alibaba.dubbo.common.extension.SPI">
+      <point x="0.0" y="-66.0" />
+      <point x="1623.0" y="77.0" />
+      <point x="1039.625" y="77.0" />
+      <point x="53.25" y="28.5" />
+    </edge>
+    <edge source="com.alibaba.dubbo.rpc.proxy.AbstractProxyFactory" target="com.alibaba.dubbo.rpc.ProxyFactory">
+      <point x="0.0" y="-41.0" />
+      <point x="0.0" y="41.0" />
+    </edge>
+    <edge source="com.alibaba.dubbo.rpc.ProxyFactory" target="com.alibaba.dubbo.common.extension.SPI">
+      <point x="0.0" y="-41.0" />
+      <point x="318.0" y="77.0" />
+      <point x="933.125" y="77.0" />
+      <point x="-53.25" y="28.5" />
+    </edge>
+    <edge source="com.alibaba.dubbo.remoting.exchange.support.header.HeaderExchanger" target="com.alibaba.dubbo.remoting.exchange.Exchanger">
+      <point x="0.0" y="-41.0" />
+      <point x="0.0" y="41.0" />
+    </edge>
+    <edge source="com.alibaba.dubbo.remoting.transport.netty.NettyTransporter" target="com.alibaba.dubbo.remoting.Transporter">
+      <point x="0.0" y="-41.0" />
+      <point x="925.0" y="264.0" />
+      <point x="841.1931818181818" y="264.0" />
+      <point x="75.25" y="41.0" />
+    </edge>
+    <edge source="com.alibaba.dubbo.rpc.proxy.javassist.JavassistProxyFactory" target="com.alibaba.dubbo.rpc.proxy.AbstractProxyFactory">
+      <point x="0.0" y="-41.0" />
+      <point x="154.0" y="396.0" />
+      <point x="260.25" y="396.0" />
+      <point x="-57.75" y="41.0" />
+    </edge>
+    <edge source="com.alibaba.dubbo.remoting.Transporter" target="com.alibaba.dubbo.common.extension.SPI">
+      <point x="0.0" y="-41.0" />
+      <point x="765.9431818181818" y="87.0" />
+      <point x="968.625" y="87.0" />
+      <point x="-17.75" y="28.5" />
+    </edge>
+    <edge source="com.alibaba.dubbo.remoting.transport.mina.MinaTransporter" target="com.alibaba.dubbo.remoting.Transporter">
+      <point x="0.0" y="-41.0" />
+      <point x="604.0" y="264.0" />
+      <point x="690.6931818181818" y="264.0" />
+      <point x="-75.25" y="41.0" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic Group" zoom="1.0" x="872.5" y="251.5" />
+  <SelectedNodes>
+    <node>com.alibaba.dubbo.remoting.transport.netty.NettyTransporter</node>
+  </SelectedNodes>
+  <Categories>
+    <Category>Methods</Category>
+    <Category>Constructors</Category>
+  </Categories>
+  <SCOPE>All</SCOPE>
+  <VISIBILITY>private</VISIBILITY>
+</Diagram>
+
