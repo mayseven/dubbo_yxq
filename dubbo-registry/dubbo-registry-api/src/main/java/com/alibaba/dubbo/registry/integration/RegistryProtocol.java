@@ -130,11 +130,11 @@ public class RegistryProtocol implements Protocol {
 
         URL registryUrl = getRegistryUrl(originInvoker);
 
-        //registry provider
+        //registry provider 根据发布的服务originInvoker得到Registry实例，由于一般都使用zookeeper为注册中心，所以这里得到的是ZookeeperRegistry；
         final Registry registry = getRegistry(originInvoker);
         final URL registedProviderUrl = getRegistedProviderUrl(originInvoker);
 
-        //to judge to delay publish whether or not
+        //to judge to delay publish whether or not       所以这里调用ZookeeperRegistry.register(URL)把需要发布的服务注册到zookeeper中
         boolean register = registedProviderUrl.getParameter("register", true);
 
         ProviderConsumerRegTable.registerProvider(originInvoker, registryUrl, registedProviderUrl);
@@ -145,9 +145,11 @@ public class RegistryProtocol implements Protocol {
         }
 
         // Subscribe the override data
+        // FIXME 提供者订阅时，会影响同一JVM即暴露服务，又引用同一服务的的场景，因为subscribed以服务名为缓存的key，导致订阅信息覆盖。
         // FIXME When the provider subscribes, it will affect the scene : a certain JVM exposes the service and call the same service. Because the subscribed is cached key with the name of the service, it causes the subscription information to cover.
         final URL overrideSubscribeUrl = getSubscribedOverrideUrl(registedProviderUrl);
         final OverrideListener overrideSubscribeListener = new OverrideListener(overrideSubscribeUrl, originInvoker);
+        // 监听机制
         overrideListeners.put(overrideSubscribeUrl, overrideSubscribeListener);
         registry.subscribe(overrideSubscribeUrl, overrideSubscribeListener);
         //Ensure that a new exporter instance is returned every time export

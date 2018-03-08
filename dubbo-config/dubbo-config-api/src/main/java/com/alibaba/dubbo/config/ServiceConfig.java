@@ -215,6 +215,14 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         }
     }
 
+    /*
+     * 1 检查<dubbo:service>中是否配置了interface, 如果为空，那么抛出异常：
+     * 2 检查xml配置中申明的interface的类型是否是java interface类型（interfaceClass.isInterface()）
+     * 3 检查xml配置中interface和ref是否匹配（interfaceClass.isInstance(ref)）
+     * 4 application&registry&protocol等有效性检查；
+     * 5 有效性检查通过后，调用doExportUrls()发布dubbo服务；
+     */
+    
     protected synchronized void doExport() {
         if (unexported) {
             throw new IllegalStateException("Already unexported!");
@@ -352,6 +360,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void doExportUrls() {
         List<URL> registryURLs = loadRegistries(true);
+        // 一般只配置dubbo协议，那么protocols就是：<dubbo:protocol name="dubbo" port="20880" id="dubbo" />
         for (ProtocolConfig protocolConfig : protocols) {
             doExportUrlsFor1Protocol(protocolConfig, registryURLs);
         }
@@ -363,6 +372,8 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
             name = "dubbo";
         }
 
+        /* 先把所有相关属性封装到Map中，例如protocol=dubbo，host=10.0.0.1，port=20880，path=com.alibaba.dubbo.demo.TestService等，
+           然后构造dubbo定义的统一数据模型URL:*/
         Map<String, String> map = new HashMap<String, String>();
         map.put(Constants.SIDE_KEY, Constants.PROVIDER_SIDE);
         map.put(Constants.DUBBO_VERSION_KEY, Version.getVersion());
@@ -475,22 +486,34 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
                     .getExtension(url.getProtocol()).getConfigurator(url).configure(url);
         }
 
+        /*
+          * 根据scope判断服务的发布范围：
+          * 1 如果配置scope=none， 那么不需要发布这个dubbo服务；
+          * 2 没有配置scope=noe且配置的scope!=remote， 那么本地暴露 这个dubbo服务；
+          * 3 没有配置scope=noe且配置的scope!=remote且配置的scope!=local，那么远程暴露这个dubbo服务
+          *  （例如远程暴露这个服务到zk上，默认情况下scope没有配置，就是在这里发布服务）；
+         */
+
         String scope = url.getParameter(Constants.SCOPE_KEY);
         // don't export when none is configured
         if (!Constants.SCOPE_NONE.toString().equalsIgnoreCase(scope)) {
-
+            // 配置不是remote的情况下做本地暴露 (配置为remote，则表示只暴露远程服务)
             // export to local if the config is not remote (export to remote only when config is remote)
             if (!Constants.SCOPE_REMOTE.toString().equalsIgnoreCase(scope)) {
                 exportLocal(url);
             }
+            // 如果配置不是local则暴露为远程服务.(配置为local，则表示只暴露远程服务)
             // export to remote if the config is not local (export to local only when config is local)
             if (!Constants.SCOPE_LOCAL.toString().equalsIgnoreCase(scope)) {
                 if (logger.isInfoEnabled()) {
                     logger.info("Export dubbo service " + interfaceClass.getName() + " to url " + url);
                 }
+                // 如果注册url地址存在，例如申明了注册的zk地址
                 if (registryURLs != null && registryURLs.size() > 0) {
+                    // 注册的zk地址可能是集群，那么需要遍历这些地址一一进行注册
                     for (URL registryURL : registryURLs) {
                         url = url.addParameterIfAbsent("dynamic", registryURL.getParameter("dynamic"));
+                        // 如果申明了dubbo-monitor，那么再url地址上append类似monitor=monitor全地址
                         URL monitorUrl = loadMonitor(registryURL);
                         if (monitorUrl != null) {
                             url = url.addParameterAndEncoded(Constants.MONITOR_KEY, monitorUrl.toFullString());
@@ -500,7 +523,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
                         }
                         Invoker<?> invoker = proxyFactory.getInvoker(ref, (Class) interfaceClass, registryURL.addParameterAndEncoded(Constants.EXPORT_KEY, url.toFullString()));
                         DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this);
-
+                        // 默认都是dubbo协议，所以调用DubboProtol.export(Invoker)
                         Exporter<?> exporter = protocol.export(wrapperInvoker);
                         exporters.add(exporter);
                     }
