@@ -101,11 +101,15 @@ final class HeaderExchangeChannel implements ExchangeChannel {
         if (closed) {
             throw new RemotingException(this.getLocalAddress(), null, "Failed to send request " + request + ", cause: The channel " + this + " is closed!");
         }
-        // create request.
+        // create request.     // 构造一个准备RPC远程调用的Request类型参数
         Request req = new Request();
         req.setVersion("2.0.0");
         req.setTwoWay(true);
+        // 将调用该方法前的RpcInvocation类型请求参数封装到Request中
         req.setData(request);
+
+       // 这里比较重要，包含了通过netty调用后，如何拿到调用结果。
+
         DefaultFuture future = new DefaultFuture(channel, req, timeout);
         try {
             channel.send(req);

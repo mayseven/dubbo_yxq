@@ -61,14 +61,25 @@ public class MockClusterInvoker<T> implements Invoker<T> {
         return directory.getInterface();
     }
 
+    /**
+     * dubbo提供了三种策略：
+     * 1、不需要mock，直接调用AbstractClusterInvoker（默认方式）
+     * 2、强制mock方式调用；
+     * 3、先AbstractClusterInvoker方式调用，如果有RpcException（比如没有任何可用的Provider），再以mock方式调用；
+     */
+    
+
+
     public Result invoke(Invocation invocation) throws RpcException {
         Result result = null;
-
+        // 获取mock的值，默认为false；
         String value = directory.getUrl().getMethodParameter(invocation.getMethodName(), Constants.MOCK_KEY, Boolean.FALSE.toString()).trim();
         if (value.length() == 0 || value.equalsIgnoreCase("false")) {
+            // 如果在<dubbo:reference>中没有申明mock（默认方式），或者申明为false，那么走这里的逻辑
             //no mock
             result = this.invoker.invoke(invocation);
         } else if (value.startsWith("force")) {
+            // 强制mock调用方式的WARN日志
             if (logger.isWarnEnabled()) {
                 logger.info("force-mock: " + invocation.getMethodName() + " force-mock enabled , url : " + directory.getUrl());
             }

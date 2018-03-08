@@ -163,6 +163,16 @@ public class DubboCodec extends ExchangeCodec implements Codec2 {
     protected void encodeRequestData(Channel channel, ObjectOutput out, Object data) throws IOException {
         RpcInvocation inv = (RpcInvocation) data;
 
+        /*
+         * 由源码可知，消息体的内容如下：
+          * 1、dubbo版本号，例如：2.0.0
+          * 2、invoke的路径，例如：com.alibaba.dubbo.demo.TestService
+          * 3、invoke的provider端暴露的服务的版本号, 例如：0.0.0
+          * 4、调用的方法名称，例如：getTeacher
+          * 5、参数类型描述符，例如：Lcom/alibaba/dubbo/demo/bean/Student;
+          * 6、遍历请求参数值并编码；
+          * 7、dubbo请求的attachments：
+         */
         out.writeUTF(inv.getAttachment(Constants.DUBBO_VERSION_KEY, DUBBO_VERSION));
         out.writeUTF(inv.getAttachment(Constants.PATH_KEY));
         out.writeUTF(inv.getAttachment(Constants.VERSION_KEY));

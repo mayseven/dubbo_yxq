@@ -68,9 +68,11 @@ public class DefaultFuture implements ResponseFuture {
     public DefaultFuture(Channel channel, Request request, int timeout) {
         this.channel = channel;
         this.request = request;
+        // request.getId即得到这一次请求的id，id生成方式通过AtomicLong.getAndIncrement()得到；源码参考Request.newId()；这个方法会不会溢出？getAndIncrement()增长到MAX_VALUE时，再增长会变为MIN_VALUE，负数也可以做为ID，所以不会溢出；
         this.id = request.getId();
         this.timeout = timeout > 0 ? timeout : channel.getUrl().getPositiveParameter(Constants.TIMEOUT_KEY, Constants.DEFAULT_TIMEOUT);
         // put into waiting map.
+        // dubbo会根据请求ID从这个map中就能拿到对应的响应结果
         FUTURES.put(id, this);
         CHANNELS.put(id, channel);
     }
@@ -92,6 +94,7 @@ public class DefaultFuture implements ResponseFuture {
 
     public static void received(Channel channel, Response response) {
         try {
+            // 在response中封装了请求ID，根据请求ID得到DefaultFuture（根据请求id通过remove方式获取DefaultFuture的好处是，获取的同时也清理了FUTURES中这个ID对应的请求信息，防止FUTURES堆积）
             DefaultFuture future = FUTURES.remove(response.getId());
             if (future != null) {
                 future.doReceived(response);
@@ -112,11 +115,14 @@ public class DefaultFuture implements ResponseFuture {
     }
 
     public Object get(int timeout) throws RemotingException {
+        // 如果Consumer端指定的timeout不大于0，那么设置为默认值1s
         if (timeout <= 0) {
             timeout = Constants.DEFAULT_TIMEOUT;
         }
+        // isDone()就是判断 response != null
         if (!isDone()) {
             long start = System.currentTimeMillis();
+            // 通过ReentrantLock锁保证线程安全，lock定义为：private final Lock lock = new ReentrantLock();
             lock.lock();
             try {
                 while (!isDone()) {
@@ -205,13 +211,16 @@ public class DefaultFuture implements ResponseFuture {
     }
 
     private Object returnFromResponse() throws RemotingException {
+        // 全局申明的private volatile Response response就是结果，后面会分析response是怎么被赋值的；
         Response res = response;
         if (res == null) {
             throw new IllegalStateException("response cannot be null");
         }
+        // 如果是正常的结果，直接返回
         if (res.getStatus() == Response.OK) {
             return res.getResult();
         }
+        // 如果是超时的结果，那么抛出超时异常
         if (res.getStatus() == Response.CLIENT_TIMEOUT || res.getStatus() == Response.SERVER_TIMEOUT) {
             throw new TimeoutException(res.getStatus() == Response.SERVER_TIMEOUT, channel, res.getErrorMessage());
         }
@@ -274,15 +283,26 @@ public class DefaultFuture implements ResponseFuture {
                 + " -> " + channel.getRemoteAddress();
     }
 
+    /**
+     * 对于那些耗时超过Consumer端timeout指定的值，且没有任何响应，dubbo如何处理呢？
+     * 这些请求如果不处理的话，数据一致会积压在FUTURES这个Map中，dubbo采用的方法是在DefaultFuture中开启一个后台线程，死循环检测
+     */
     private static class RemotingInvocationTimeoutScan implements Runnable {
 
         public void run() {
             while (true) {
                 try {
+                    // 只要有请求，那么FUTURES就不为空，那么遍历这些请求
                     for (DefaultFuture future : FUTURES.values()) {
                         if (future == null || future.isDone()) {
                             continue;
                         }
+                        /*
+                         * 如果耗时超过了Consumer端指定的timeout，那么返回特定status值的Response（future.isSent() ? Response.SERVER_TIMEOUT :
+                         * Response.CLIENT_TIMEOUT）， Consumer拿到这种Response后，判断它是Response.SERVER_TIMEOUT or
+                         * Response.CLIENT_TIMEOUT，从而抛出TimeoutException异常；
+                         */
+                        
                         if (System.currentTimeMillis() - future.getStartTimestamp() > future.getTimeout()) {
                             // create exception response.
                             Response timeoutResponse = new Response(future.getId());

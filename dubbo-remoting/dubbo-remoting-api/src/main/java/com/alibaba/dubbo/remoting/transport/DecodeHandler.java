@@ -38,7 +38,7 @@ public class DecodeHandler extends AbstractChannelHandlerDelegate {
         if (message instanceof Decodeable) {
             decode(message);
         }
-
+        // 如果是consumer调用provider，那么message就是Request类型，需要在这里解码
         if (message instanceof Request) {
             decode(((Request) message).getData());
         }
@@ -46,7 +46,7 @@ public class DecodeHandler extends AbstractChannelHandlerDelegate {
         if (message instanceof Response) {
             decode(((Response) message).getResult());
         }
-
+        // 如果使用telnet方式调用provider，那么message是String类型，不需要再做任何处理，直接运行到这里
         handler.received(channel, message);
     }
 

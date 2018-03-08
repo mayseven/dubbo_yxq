@@ -34,11 +34,13 @@ public class InvokerInvocationHandler implements InvocationHandler {
     }
 
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        // 得到调用的方法名称
         String methodName = method.getName();
         Class<?>[] parameterTypes = method.getParameterTypes();
         if (method.getDeclaringClass() == Object.class) {
             return method.invoke(invoker, args);
         }
+        // 调用toString()方法的特殊处理方式
         if ("toString".equals(methodName) && parameterTypes.length == 0) {
             return invoker.toString();
         }
@@ -48,6 +50,7 @@ public class InvokerInvocationHandler implements InvocationHandler {
         if ("equals".equals(methodName) && parameterTypes.length == 1) {
             return invoker.equals(args[0]);
         }
+        // 常规的dubbo调用，都走这里，把调用的方法名称和参数封装成RpcInvocation对象，然后调用MockClusterInvoker中的invoke()方法
         return invoker.invoke(new RpcInvocation(method, args)).recreate();
     }
 

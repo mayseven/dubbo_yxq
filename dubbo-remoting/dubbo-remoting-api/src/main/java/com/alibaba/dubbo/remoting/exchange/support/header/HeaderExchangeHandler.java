@@ -92,7 +92,7 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
         // find handler by message class.
         Object msg = req.getData();
         try {
-            // handle data.
+            // handle data. 将返回的result（RpcResult类型）包装成dubbo统一的返回数据类型Reponse
             Object result = handler.reply(channel, msg);
             res.setStatus(Response.OK);
             res.setResult(result);
@@ -164,8 +164,10 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
                 if (request.isEvent()) {
                     handlerEvent(channel, request);
                 } else {
+                    // twoway就是指Consumer需要拿到Provider的结果的调用
                     if (request.isTwoWay()) {
                         Response response = handleRequest(exchangeChannel, request);
+                        // 将RPC结果发送到请求的channel（NettyChannel中调用send()方法）
                         channel.send(response);
                     } else {
                         handler.received(exchangeChannel, request.getData());

@@ -284,25 +284,28 @@ public class DubboProtocol extends AbstractProtocol {
     }
 
     public <T> Invoker<T> refer(Class<T> serviceType, URL url) throws RpcException {
-        // create rpc invoker.
+        // create rpc invoker. 构建DubboInvoker的核心是获取ExchangeClient
         DubboInvoker<T> invoker = new DubboInvoker<T>(serviceType, url, getClients(url), invokers);
         invokers.add(invoker);
         return invoker;
     }
 
     private ExchangeClient[] getClients(URL url) {
-        // whether to share connection
+        // whether to share connection 是否共享连接
         boolean service_share_connect = false;
+        // 如果<dubbo:reference/>中配置了connections，且值大于1，那么表示不共享连接，默认connections=0，即共享连接
         int connections = url.getParameter(Constants.CONNECTIONS_KEY, 0);
         // if not configured, connection is shared, otherwise, one connection for one service
+        //如果connections不配置，则共享连接，否则每服务每连接
         if (connections == 0) {
             service_share_connect = true;
             connections = 1;
         }
-
+        // connections值决定ExchangeClient的数量，共享连接只有一个ExchangeClient
         ExchangeClient[] clients = new ExchangeClient[connections];
         for (int i = 0; i < clients.length; i++) {
             if (service_share_connect) {
+                // getSharedClient(url)会调用initClient(url)，所以是否共享连接的区别就在方法getSharedClient(url)中
                 clients[i] = getSharedClient(url);
             } else {
                 clients[i] = initClient(url);
@@ -315,17 +318,22 @@ public class DubboProtocol extends AbstractProtocol {
      * Get shared connection
      */
     private ExchangeClient getSharedClient(URL url) {
+        // 根据访问的URL得到key，例如192.168.0.1:20880
         String key = url.getAddress();
+        // 查看map中是否已经缓存过
         ReferenceCountExchangeClient client = referenceClientMap.get(key);
         if (client != null) {
+            // 如果缓存过且该Client没有关闭，那么Client中refenceCount值+1，然后返回这个Client
             if (!client.isClosed()) {
                 client.incrementAndGetCount();
                 return client;
             } else {
+                // 如果Client已经关闭，那么清理掉map中的缓存；
                 referenceClientMap.remove(key);
             }
         }
         synchronized (key.intern()) {
+            // 如果map中没有缓存Client，调用initClient()进行初始化
             ExchangeClient exchangeClient = initClient(url);
             client = new ReferenceCountExchangeClient(exchangeClient, ghostClientMap);
             referenceClientMap.put(key, client);
@@ -355,6 +363,7 @@ public class DubboProtocol extends AbstractProtocol {
         ExchangeClient client;
         try {
             // connection should be lazy
+            //设置连接应该是lazy(在<dubbo:reference/>中设置lazy="true"，默认为false)
             if (url.getParameter(Constants.LAZY_CONNECT_KEY, false)) {
                 client = new LazyConnectExchangeClient(url, requestHandler);
             } else {

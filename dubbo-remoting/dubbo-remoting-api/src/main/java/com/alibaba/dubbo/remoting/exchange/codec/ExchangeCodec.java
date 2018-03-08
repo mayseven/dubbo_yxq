@@ -203,11 +203,19 @@ public class ExchangeCodec extends TelnetCodec {
         return req.getData();
     }
 
+    /*
+     * 1 获取具体的序列化实现，默认为hessian2：Serialization serialization = getSerialization(channel);
+     * 2 组装协议头
+     * 3 组装协议体encodeRequestData(channel, out, req.getData())并序列化写入buffer；
+     * 4 检查写入数据是否超载，默认为8M，可以通过payload设置，checkPayload(channel, len);
+     * 5 将协议头写入buffer；
+     * 6 在buffer上设置写的index；
+     */
     protected void encodeRequest(Channel channel, ChannelBuffer buffer, Request req) throws IOException {
         Serialization serialization = getSerialization(channel);
         // header.
         byte[] header = new byte[HEADER_LENGTH];
-        // set magic number.
+        // set magic number. 协议头的前2个字节由MAGIC指定
         Bytes.short2bytes(MAGIC, header);
 
         // set request and serialization flag.
@@ -216,7 +224,7 @@ public class ExchangeCodec extends TelnetCodec {
         if (req.isTwoWay()) header[2] |= FLAG_TWOWAY;
         if (req.isEvent()) header[2] |= FLAG_EVENT;
 
-        // set request id.
+        // set request id. 请求id赋值到消息头的4~11位置，占8个字节
         Bytes.long2bytes(req.getId(), header, 4);
 
         // encode request data.
@@ -234,6 +242,7 @@ public class ExchangeCodec extends TelnetCodec {
         bos.close();
         int len = bos.writtenBytes();
         checkPayload(channel, len);
+        // 消息体长度赋值到消息头的12~15位置，占4个字节
         Bytes.int2bytes(len, header, 12);
 
         // write

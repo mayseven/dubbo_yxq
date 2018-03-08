@@ -227,7 +227,7 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
         checkWhetherDestroyed();
 
         LoadBalance loadbalance;
-
+        // 从Diectory中得到所有可用的，经过路由过滤的Invoker集合
         List<Invoker<T>> invokers = list(invocation);
         if (invokers != null && invokers.size() > 0) {
             // 排序后的Invoker集合的第一个Invoker(即invokers.get(0))的负载均衡策略就是dubbo选择的策略，默认策略为Constants.DEFAULT_LOADBALANCE，即"random"，然后根据扩展机制得到负载均衡算法的实现为com.alibaba.dubbo.rpc.cluster.loadbalance.RandomLoadBalance
@@ -237,6 +237,7 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
             // 如果没有任何Invoker，那么直接取默认负载
             loadbalance = ExtensionLoader.getExtensionLoader(LoadBalance.class).getExtension(Constants.DEFAULT_LOADBALANCE);
         }
+        // 如果异步调用，那么在attachment中给id赋值（值是自增的，通过AtomicLong.getAndIncrement()得到）
         RpcUtils.attachInvocationIdIfAsync(getUrl(), invocation);
         return doInvoke(invocation, invokers, loadbalance);
     }

@@ -77,6 +77,12 @@ final class NettyCodecAdapter {
                     com.alibaba.dubbo.remoting.buffer.ChannelBuffers.dynamicBuffer(1024);
             NettyChannel channel = NettyChannel.getOrAddChannel(ch, url, handler);
             try {
+                /*
+                 * dubbo-rpc-default模块中/META-INF/dubbo/internal目录下文件com.alibaba.dubbo.remoting.Codec2中指定：
+                 * dubbo=com.alibaba.dubbo.rpc.protocol.dubbo.DubboCountCodec 所以codec.encode(channel, buffer, msg); -->
+                 * DubboCountCodec.encode(Channel channel, ChannelBuffer buffer, Object msg)； -->
+                 * ExchangeCodec.encode(Channel channel, ChannelBuffer buffer, Object msg),
+                 */
                 codec.encode(channel, buffer, msg);
             } finally {
                 NettyChannel.removeChannelIfDisconnected(ch);
