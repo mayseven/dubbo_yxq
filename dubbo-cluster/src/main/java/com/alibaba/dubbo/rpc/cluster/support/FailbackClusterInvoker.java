@@ -40,7 +40,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * When fails, record failure requests and schedule for retry on a regular interval.
  * Especially useful for services of notification.
- *
+ * 失败自动恢复，后台记录失败请求，定时重发。通常用于消息通知操作。
  * <a href="http://en.wikipedia.org/wiki/Failback">Failback</a>
  *
  */
@@ -60,6 +60,7 @@ public class FailbackClusterInvoker<T> extends AbstractClusterInvoker<T> {
 
     private void addFailed(Invocation invocation, AbstractClusterInvoker<?> router) {
         if (retryFuture == null) {
+            // double-check保证线程安全
             synchronized (this) {
                 if (retryFuture == null) {
                     retryFuture = scheduledExecutorService.scheduleWithFixedDelay(new Runnable() {
@@ -67,6 +68,7 @@ public class FailbackClusterInvoker<T> extends AbstractClusterInvoker<T> {
                         public void run() {
                             // collect retry statistics
                             try {
+                                // 重试失败的请求，如果重试成功，把请求从remove掉；
                                 retryFailed();
                             } catch (Throwable t) { // Defensive fault tolerance
                                 logger.error("Unexpected error occur at collect statistic", t);

@@ -31,7 +31,7 @@ import java.util.List;
 /**
  * When invoke fails, log the error message and ignore this error by returning an empty RpcResult.
  * Usually used to write audit logs and other operations
- *
+ * 失败安全，出现异常时，直接忽略。通常用于写入审计日志等操作。
  * <a href="http://en.wikipedia.org/wiki/Fail-safe">Fail-safe</a>
  *
  */

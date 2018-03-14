@@ -34,12 +34,21 @@ import java.util.List;
  * <a href="http://en.wikipedia.org/wiki/Fail-fast">Fail-fast</a>
  *
  */
+
+/**
+ *
+ * 快速失败，只发起一次调用，失败立即报错。通常用于非幂等性的写操作，比如新增记录。
+ */
 public class FailfastClusterInvoker<T> extends AbstractClusterInvoker<T> {
 
     public FailfastClusterInvoker(Directory<T> directory) {
         super(directory);
     }
 
+    /**
+     * FailfastCluster实现比较简单，根据负载均衡机制选择一个Invoker后只调用1次，不管结果如何， 不再进行任何重试：
+     * 如果调用正常就返回Result，否则返回<u>记录了详细异常信息的RpcException
+     */
     public Result doInvoke(Invocation invocation, List<Invoker<T>> invokers, LoadBalance loadbalance) throws RpcException {
         checkInvokers(invokers, invocation);
         Invoker<T> invoker = select(loadbalance, invocation, invokers, null);

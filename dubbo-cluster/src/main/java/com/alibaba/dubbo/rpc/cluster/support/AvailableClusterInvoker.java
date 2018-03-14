@@ -27,7 +27,7 @@ import java.util.List;
 
 /**
  * AvailableCluster
- *
+ * 遍历所有从Directory中list出来的Invoker集合，调用第一个isAvailable()的Invoker，只发起一次调用，失败立即报错。
  */
 public class AvailableClusterInvoker<T> extends AbstractClusterInvoker<T> {
 
